@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Maze Multiplayer</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="index.js" defer></script>
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="topbar">
+        <div class="brand">
+          <strong>Maze</strong>
+          <span data-connection>Offline</span>
+        </div>
+
+        <section class="room-panel" data-lobby>
+          <input data-player-name type="text" maxlength="20" placeholder="Name" autocomplete="nickname" />
+          <input data-room-size type="number" min="5" max="60" value="25" aria-label="Maze size" />
+          <button data-create-room type="button">Create</button>
+          <input data-room-code type="text" maxlength="6" placeholder="CODE" autocomplete="off" />
+          <button data-join-room type="button">Join</button>
+        </section>
+
+        <section class="play-panel" data-play-panel hidden>
+          <button data-leave-room type="button">Leave</button>
+          <button data-copy-code type="button">Copy <span data-room-label></span></button>
+          <label>Grid <input data-grid-color type="color" value="#2ecc71" /></label>
+        </section>
+      </header>
+
+      <section class="stage">
+        <canvas id="mazeCanvas"></canvas>
+        <div class="empty-state" data-empty-state>
+          <h1>Multiplayer Maze</h1>
+          <p>Create a room or join with a code. Move with WASD, arrows, or phone buttons.</p>
+        </div>
+      </section>
+
+      <footer class="controls">
+        <div class="status-row">
+          <span data-status>Ready.</span>
+          <span data-players></span>
+        </div>
+        <div class="dpad" aria-label="Movement controls">
+          <button class="move up" data-move="up" type="button" aria-label="Move up">▲</button>
+          <button class="move left" data-move="left" type="button" aria-label="Move left">◀</button>
+          <button class="move right" data-move="right" type="button" aria-label="Move right">▶</button>
+          <button class="move down" data-move="down" type="button" aria-label="Move down">▼</button>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>
