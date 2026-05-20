@@ -175,7 +175,7 @@ function draw() {
   const inset = Math.max(1, thickness);
   document.documentElement.style.setProperty("--grid", wall);
   ctx.clearRect(0, 0, logicalSize, logicalSize);
-  ctx.fillStyle = "#000";
+  ctx.fillStyle = "#020617";
   ctx.fillRect(0, 0, logicalSize, logicalSize);
 
   for (const mazeCell of state.room.grid) {
