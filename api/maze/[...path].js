@@ -1,7 +1,8 @@
 const BACKEND_URL = process.env.MAZE_BACKEND_URL || "http://fi10.bot-hosting.net:21204";
 
 export default async function handler(req, res) {
-  const path = Array.isArray(req.query.path) ? req.query.path.join("/") : "";
+  const requestUrl = new URL(req.url || "/api/maze", "http://localhost");
+  const path = requestUrl.pathname.replace(/^\/api\/maze\/?/, "");
   const target = `${BACKEND_URL.replace(/\/$/, "")}/api/maze/${path}`;
 
   try {
