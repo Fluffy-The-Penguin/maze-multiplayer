@@ -3,9 +3,9 @@ const POLL_MS = 180;
 
 const els = {
   canvas: document.getElementById("mazeCanvas"),
+  homeScreen: document.querySelector("[data-home-screen]"),
+  gameScreen: document.querySelector("[data-game-screen]"),
   connection: document.querySelector("[data-connection]"),
-  lobby: document.querySelector("[data-lobby]"),
-  playPanel: document.querySelector("[data-play-panel]"),
   playerName: document.querySelector("[data-player-name]"),
   roomSize: document.querySelector("[data-room-size]"),
   roomCode: document.querySelector("[data-room-code]"),
@@ -16,6 +16,7 @@ const els = {
   roomLabel: document.querySelector("[data-room-label]"),
   gridColor: document.querySelector("[data-grid-color]"),
   status: document.querySelector("[data-status]"),
+  gameStatus: document.querySelector("[data-game-status]"),
   players: document.querySelector("[data-players]"),
 };
 
@@ -43,7 +44,8 @@ async function api(path, options = {}) {
 }
 
 function setStatus(value) {
-  els.status.textContent = value;
+  if (els.homeScreen.hidden) els.gameStatus.textContent = value;
+  else els.status.textContent = value;
 }
 
 function setConnection(value) {
@@ -80,9 +82,8 @@ async function joinRoom() {
 function enterRoom(room, playerId) {
   state.room = room;
   state.playerId = playerId;
-  document.body.classList.add("in-room");
-  els.lobby.hidden = true;
-  els.playPanel.hidden = false;
+  els.homeScreen.hidden = true;
+  els.gameScreen.hidden = false;
   els.roomLabel.textContent = room.code;
   setConnection("Online");
   setStatus(`Room ${room.code}`);
@@ -94,9 +95,8 @@ function leaveRoom() {
   stopPolling();
   state.room = null;
   state.playerId = "";
-  document.body.classList.remove("in-room");
-  els.lobby.hidden = false;
-  els.playPanel.hidden = true;
+  els.homeScreen.hidden = false;
+  els.gameScreen.hidden = true;
   setConnection("Offline");
   setStatus("Ready.");
   updatePlayers();
@@ -143,8 +143,8 @@ async function move(direction) {
 
 function resizeCanvas() {
   if (!state.room) return;
-  const shell = document.querySelector(".game-shell");
-  const topbar = document.querySelector(".topbar");
+  const shell = els.gameScreen;
+  const topbar = document.querySelector(".game-topbar");
   const controls = document.querySelector(".controls");
   const styles = getComputedStyle(shell);
   const gap = parseFloat(styles.rowGap) || 0;
