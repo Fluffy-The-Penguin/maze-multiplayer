@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE_URL = "https://anime-api-proxy.aryanpanwar.workers.dev";
+const DEFAULT_API_BASE_URL = "";
 const POLL_MS = 180;
 
 const els = {
