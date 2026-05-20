@@ -25,7 +25,9 @@ const state = {
   room: null,
   playerId: "",
   pollTimer: null,
-  pendingMove: false,
+  pendingMoves: 0,
+  moveChain: Promise.resolve(),
+  canvasMetrics: null,
 };
 
 function apiBaseUrl() {
@@ -87,6 +89,7 @@ function enterRoom(room, playerId) {
   els.roomLabel.textContent = room.code;
   setConnection("Online");
   setStatus(`Room ${room.code}`);
+  resizeCanvas();
   draw();
   startPolling();
 }
@@ -95,6 +98,9 @@ function leaveRoom() {
   stopPolling();
   state.room = null;
   state.playerId = "";
+  state.pendingMoves = 0;
+  state.moveChain = Promise.resolve();
+  state.canvasMetrics = null;
   els.homeScreen.hidden = false;
   els.gameScreen.hidden = true;
   setConnection("Offline");
@@ -113,7 +119,7 @@ function stopPolling() {
 }
 
 async function pollRoom() {
-  if (!state.room?.code) return;
+  if (!state.room?.code || state.pendingMoves) return;
   try {
     const data = await api(`/api/maze/rooms/${encodeURIComponent(state.room.code)}`);
     state.room = data.room;
@@ -125,20 +131,49 @@ async function pollRoom() {
 }
 
 async function move(direction) {
-  if (!state.room?.code || !state.playerId || state.pendingMove || state.room.winner) return;
-  state.pendingMove = true;
-  try {
-    const data = await api(`/api/maze/rooms/${encodeURIComponent(state.room.code)}/move`, {
+  if (!state.room?.code || !state.playerId || state.room.winner) return;
+  if (!applyLocalMove(direction)) return;
+
+  const roomCode = state.room.code;
+  state.pendingMoves += 1;
+  state.moveChain = state.moveChain
+    .then(() => api(`/api/maze/rooms/${encodeURIComponent(roomCode)}/move`, {
       method: "POST",
       body: { playerId: state.playerId, direction },
+    }))
+    .then((data) => {
+      if (state.pendingMoves === 1) {
+        state.room = data.room;
+        draw();
+      }
+    })
+    .catch((error) => {
+      setStatus(error.message || "Move failed. Reconnecting...");
+      pollRoom();
+    })
+    .finally(() => {
+      state.pendingMoves = Math.max(0, state.pendingMoves - 1);
+      if (state.pendingMoves === 0) pollRoom();
     });
-    state.room = data.room;
-    draw();
-  } catch (error) {
-    setStatus(error.message || "Move failed.");
-  } finally {
-    state.pendingMove = false;
+}
+
+function applyLocalMove(direction) {
+  const player = state.room.players.find((item) => item.id === state.playerId);
+  if (!player) return false;
+  const dirIndex = { up: 0, right: 1, down: 2, left: 3 }[direction];
+  if (!Number.isInteger(dirIndex)) return false;
+  const cell = state.room.grid[player.r * state.room.size + player.c];
+  if (!cell || cell.walls[dirIndex]) return false;
+
+  if (direction === "up") player.r -= 1;
+  if (direction === "right") player.c += 1;
+  if (direction === "down") player.r += 1;
+  if (direction === "left") player.c -= 1;
+  if (player.r === state.room.goal.r && player.c === state.room.goal.c && !state.room.winner) {
+    state.room.winner = { id: player.id, name: player.name, at: Date.now() };
   }
+  draw();
+  return true;
 }
 
 function resizeCanvas() {
@@ -161,12 +196,13 @@ function resizeCanvas() {
   els.canvas.height = Math.floor(logicalSize * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.imageSmoothingEnabled = false;
-  return { cell, logicalSize };
+  state.canvasMetrics = { cell, logicalSize };
+  return state.canvasMetrics;
 }
 
 function draw() {
   if (!state.room) return;
-  const sizes = resizeCanvas();
+  const sizes = state.canvasMetrics || resizeCanvas();
   if (!sizes) return;
 
   const { cell, logicalSize } = sizes;
@@ -226,8 +262,17 @@ els.copyCode.addEventListener("click", async () => {
   setStatus(`Copied room ${state.room.code}`);
 });
 els.gridColor.addEventListener("input", draw);
-document.querySelectorAll("[data-move]").forEach((button) => button.addEventListener("click", () => move(button.dataset.move)));
-window.addEventListener("resize", draw);
+document.querySelectorAll("[data-move]").forEach((button) => {
+  button.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    move(button.dataset.move);
+  });
+});
+window.addEventListener("resize", () => {
+  if (!state.room) return;
+  resizeCanvas();
+  draw();
+});
 window.addEventListener("keydown", (event) => {
   const key = event.key.toLowerCase();
   const direction = { arrowup: "up", w: "up", arrowright: "right", d: "right", arrowdown: "down", s: "down", arrowleft: "left", a: "left" }[key];
